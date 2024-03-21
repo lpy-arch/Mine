@@ -3,11 +3,13 @@ import music21 as m21
 import keras
 import numpy as np
 from keras.models import load_model
-from preprocess import SEQUENCE_LENGTH, MAPPING_PATH
+
+from encode import SEQUENCE_LENGTH, MAPPING_PATH
+from train import SAVE_MODEL_PATH
 
 
 class MelodyGenerator:
-    def __init__(self, model_path="model.h5"):
+    def __init__(self, model_path=SAVE_MODEL_PATH):
         
         self.model_path = model_path
         self.model = load_model(model_path)

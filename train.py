@@ -1,14 +1,15 @@
-from preprocess import generate_training_sequences, SEQUENCE_LENGTH
+from traindata import generate_training_sequences
+from encode import SEQUENCE_LENGTH
 from model import build_model
 
 OUTPUT_UNITS = 38
-NUM_UNITS = [256,128]
-DENSE_UNITS = [128,64,38]
+NUM_UNITS = [256]
+DENSE_UNITS = [38]
 LOSS = "sparse_categorical_crossentropy"
 LEARNING_RATE = 0.001
 EPOCHS = 1
 BATCH_SIZE = 64
-SAVE_MODEL_PATH = "model.h5"
+SAVE_MODEL_PATH = "mid_data/model.h5"
 
 def train(output_units=OUTPUT_UNITS, num_units=NUM_UNITS, dense_units=DENSE_UNITS, loss=LOSS, learning_rate=LEARNING_RATE):
 
