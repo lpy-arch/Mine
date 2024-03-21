@@ -81,6 +81,7 @@ def encode_song(song, time_step=0.25):
             symbol = "r"
             
         # convert the note/rest into time series notation
+        # every symbol represents 16th note
         steps = int(event.duration.quarterLength / time_step)
         for step in range(steps):
             if step == 0:
