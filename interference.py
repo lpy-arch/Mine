@@ -3,7 +3,7 @@ import music21 as m21
 import keras
 import numpy as np
 from keras.models import load_model
-from preprocess import SEQUENCE_LENGTH, MAPPING_PATH
+from preprocess import WINDOW_LENGTH, MAPPING_PATH
 
 
 class MelodyGenerator:
@@ -15,7 +15,7 @@ class MelodyGenerator:
         with open(MAPPING_PATH, "r") as fp:
             self._mappings = json.load(fp)
         
-        self._start_symbols = ["/"] * SEQUENCE_LENGTH
+        self._start_symbols = ["/"] * WINDOW_LENGTH
         
     def _sample_with_temperature(self, probabilities, temperature):
         
@@ -116,6 +116,6 @@ class MelodyGenerator:
 if __name__ == "__main__":
     mg = MelodyGenerator()
     seed = "67 _ _ _ _ _ 65 _ 64 _ 62 _ 60 _ _ _"
-    melody = mg.generate_melody(seed, 500, SEQUENCE_LENGTH, 0.1)
+    melody = mg.generate_melody(seed, 500, WINDOW_LENGTH, 0.1)
     print(melody)
     mg.save_melody(melody)

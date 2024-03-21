@@ -17,7 +17,7 @@ ACCEPTABLE_DURATIONS = [
 ]
 SAVE_DIR = "dataset"
 SINGLE_FILE_DATASET = "file_dataset"
-SEQUENCE_LENGTH = 64
+WINDOW_LENGTH = 64
 MAPPING_PATH = "mapping.json"
 
 def load_songs_in_kern(dataset_path):
@@ -95,10 +95,41 @@ def encode_song(song, time_step=0.25):
     return encoded_song
 
 
-def load(file_path):
-    with open(file_path, "r") as fp:
-        song = fp.read()
-    return song
+
+def create_single_file_dataset(dataset_path, file_dataset_path, window_length):
+    new_song_delimiter = "/ " * window_length
+    songs = ""
+    
+    # load encoded songs and add delimiters
+    # 如果出现隐藏名称干扰文件读取，就在数据集文件夹下运行“find . -name '.DS_Store' -type f -delete”
+    for path, _, files in os.walk(dataset_path):
+        for file in files:
+            file_path = os.path.join(path, file)
+            song = load(file_path)
+            songs = songs + song + " " + new_song_delimiter
+    songs = songs[:-1]    # delete the " " in the end
+    
+    # save string that contains all dataset
+    with open(file_dataset_path, "w") as fp:
+        fp.write(songs)
+        
+    return songs
+
+
+def creat_mapping(songs, mapping_path):
+    mappings = {}
+    
+    # identify the vocabulary
+    songs = songs.split()
+    vocabulary = list(set(songs))
+    
+    # create mappings
+    for i, symbol in enumerate(vocabulary):
+        mappings[symbol] = i
+    
+    # save vocabulary to json file
+    with open(mapping_path, "w", encoding='utf-8') as fp:
+        json.dump(mappings, fp, indent=4)
 
 
 def convert_songs_to_int(songs):
@@ -118,6 +149,13 @@ def convert_songs_to_int(songs):
         int_songs.append(mappings[symbol])
         
     return int_songs
+
+
+def load(file_path):
+    with open(file_path, "r") as fp:
+        song = fp.read()
+    return song
+
 
 def preprocess(dataset_path):
     
@@ -144,42 +182,8 @@ def preprocess(dataset_path):
         with open(save_path, "w") as fp:
             fp.write(encoded_song)
 
-def create_single_file_dataset(dataset_path, file_dataset_path, sequence_length):
-    new_song_delimiter = "/ " * sequence_length
-    songs = ""
-    
-    # load encoded songs and add delimiters
-    # 如果出现隐藏名称干扰文件读取，就在数据集文件夹下运行“find . -name '.DS_Store' -type f -delete”
-    for path, _, files in os.walk(dataset_path):
-        for file in files:
-            file_path = os.path.join(path, file)
-            song = load(file_path)
-            songs = songs + song + " " + new_song_delimiter
-    songs = songs[:-1]    # delete the " " in the end
-    
-    # save string that contains all dataset
-    with open(file_dataset_path, "w") as fp:
-        fp.write(songs)
-        
-    return songs
 
-def creat_mapping(songs, mapping_path):
-    mappings = {}
-    
-    # identify the vocabulary
-    songs = songs.split()
-    vocabulary = list(set(songs))
-    
-    # create mappings
-    for i, symbol in enumerate(vocabulary):
-        mappings[symbol] = i
-    
-    # save vocabulary to json file
-    with open(mapping_path, "w", encoding='utf-8') as fp:
-        json.dump(mappings, fp, indent=4)
-
-
-def generate_training_sequences(sequence_length):
+def generate_training_sequences(window_length):
     
     # load the songs and map them to int
     songs = load(SINGLE_FILE_DATASET)
@@ -189,13 +193,13 @@ def generate_training_sequences(sequence_length):
     inputs = []
     targets = []
     
-    num_sequences = len(int_songs) - sequence_length
+    num_sequences = len(int_songs) - window_length
     for i in range(num_sequences):
-        inputs.append(int_songs[i:i+sequence_length])
-        targets.append(int_songs[i+sequence_length])
+        inputs.append(int_songs[i:i+window_length])
+        targets.append(int_songs[i+window_length])
     
     # one-hot encode the sequences
-    # the shape of the input: (num_sequences, sequence_length, vocabulary_size)
+    # the shape of the input: (num_sequences, window_length, vocabulary_size)
     # one-hot encoding example: [ [0,1,2], [1,1,2] ] => [ [[1,0,0], [0,1,0], [0,0,1]], [[0,1,0], [0,1,0], [0,0,1]] ]
     vocabulary_size = len(set(int_songs))
     inputs = keras.utils.to_categorical(inputs, num_classes=vocabulary_size)
@@ -208,10 +212,10 @@ if __name__ == "__main__":
     preprocess(KERN_DATASET_PATH)
 
     # single file collection
-    songs = create_single_file_dataset(SAVE_DIR, SINGLE_FILE_DATASET, SEQUENCE_LENGTH)
+    songs = create_single_file_dataset(SAVE_DIR, SINGLE_FILE_DATASET, WINDOW_LENGTH)
 
     # create vocabulary map
     creat_mapping(songs, MAPPING_PATH)
 
     # training sequences generation
-    inputs, targets = generate_training_sequences(SEQUENCE_LENGTH)
+    inputs, targets = generate_training_sequences(WINDOW_LENGTH)
