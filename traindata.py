@@ -1,32 +1,55 @@
-import keras
-import numpy as np
+# pylint: disable=E1102
+
+import torch
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
 
 from encode import encode, SEQUENCE_LENGTH
 from parse import SAVE_DIR
 
 
-def generate_training_sequences(sequence_length):
-    
-    # load the encoded songs
-    int_songs = encode(dataset_path=SAVE_DIR)
-    
-    # generate the training sequences
-    inputs = []
-    targets = []
-    
-    num_sequences = len(int_songs) - sequence_length
-    for i in range(num_sequences):
-        inputs.append(int_songs[i:i+sequence_length])
-        targets.append(int_songs[i+sequence_length])
-    
-    # one-hot encode the sequences
-    # the shape of the input: (num_sequences, sequence_length, vocabulary_size)
-    # one-hot encoding example: [ [0,1,2], [1,1,2] ] => [ [[1,0,0], [0,1,0], [0,0,1]], [[0,1,0], [0,1,0], [0,0,1]] ]
-    vocabulary_size = len(set(int_songs))
-    inputs = keras.utils.to_categorical(inputs, num_classes=vocabulary_size)
-    targets = np.array(targets)
+# custom dataset settings
+class SongsDataset(Dataset):
+    # the input of __init__ are the same input as we init the class
+    def __init__(self, sequence_length=SEQUENCE_LENGTH):
+        self.int_songs = encode(dataset_path=SAVE_DIR)  # the encoded int type song
+        self.sequence_length = sequence_length  # as the length of the sliding window
+        self.num_sequences = len(self.int_songs) - self.sequence_length  # as the number of data-sets
 
-    return inputs, targets
+    def __len__(self):
+        return self.num_sequences   # the pairs of data
+
+    def __getitem__(self, idx):
+        # get the songs and targets
+
+        # create the sliding window to generate the training data
+        inputs = []
+        targets = []
+        for i in range(self.num_sequences):
+            inputs.append(self.int_songs[i:i+self.sequence_length])
+            targets.append(self.int_songs[i+self.sequence_length])
+
+        # songs and targets are in seprate lists, use "idx" as index to make sure they are matched
+        song = inputs[idx]
+        target = targets[idx]
+
+        # make sure song and target are "tensor" type both
+        song = torch.tensor(song)
+        target = torch.tensor(target)
+
+        # switch the song into one-hot encoding
+        song = F.one_hot(song, num_classes=38)
+
+        # return "song, label" as the return of the dataset class
+        return song, target
+
 
 if __name__ == "__main__":
-    inputs, targets = generate_training_sequences(SEQUENCE_LENGTH)
+    # load the dataloader
+    train_data = SongsDataset()
+    train_dataloader = DataLoader(train_data, batch_size=32)
+
+    # print the size of the data in dataloader
+    train_features, train_labels = next(iter(train_dataloader))
+    print(f"Feature batch shape: {train_features.size()}")
+    print(f"Labels batch shape: {train_labels.size()}")
