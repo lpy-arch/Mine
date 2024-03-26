@@ -1,5 +1,8 @@
 # pylint: disable=E1102
 
+# feature:[batch_size, sequence_length]
+# target:[batch_size]
+
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
@@ -7,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from encode import encode, SEQUENCE_LENGTH
 from parse import SAVE_DIR
 
+FEWER_DATA = 0.01
 
 # custom dataset settings
 class SongsDataset(Dataset):
@@ -14,7 +18,7 @@ class SongsDataset(Dataset):
     def __init__(self, sequence_length=SEQUENCE_LENGTH):
         self.int_songs = encode(dataset_path=SAVE_DIR)  # the encoded int type song
         self.sequence_length = sequence_length  # as the length of the sliding window
-        self.num_sequences = len(self.int_songs) - self.sequence_length  # as the number of data-sets
+        self.num_sequences = round((len(self.int_songs) - self.sequence_length)*FEWER_DATA)  # as the number of data-sets
 
     def __len__(self):
         return self.num_sequences   # the pairs of data
@@ -38,7 +42,7 @@ class SongsDataset(Dataset):
         target = torch.tensor(target)
 
         # switch the song into one-hot encoding
-        song = F.one_hot(song, num_classes=38)
+        # song = F.one_hot(song, num_classes=38)
 
         # return "song, label" as the return of the dataset class
         return song, target
