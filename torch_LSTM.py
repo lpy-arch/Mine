@@ -114,21 +114,21 @@ if __name__ == "__main__":
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_labels.size()}")
 
-    # init the model
-    model = VAE()
-    print(model)
+    # # init the model
+    # model = VAE()
+    # print(model)
 
-    # train、save the model
-    train_test_save_model(model, train_dataloader)
+    # # train、save the model
+    # train_test_save_model(model, train_dataloader)
 
-    # loading models
-    model.load_state_dict(torch.load(SAVE_MODEL_PATH))
-    # Set the model to evaluation mode
-    model.eval()
-    with torch.no_grad():
-        # rand a tensor as the "z" as the input of decoder
-        shape = (BATCH_SIZES, 16)
-        x = torch.rand(shape)
-        # put z in decoder to generate a result
-        pred = model.decode(x)
-        print(x)
+    # # loading models
+    # model.load_state_dict(torch.load(SAVE_MODEL_PATH))
+    # # Set the model to evaluation mode
+    # model.eval()
+    # with torch.no_grad():
+    #     # rand a tensor as the "z" as the input of decoder
+    #     shape = (BATCH_SIZES, 16)
+    #     x = torch.rand(shape)
+    #     # put z in decoder to generate a result
+    #     pred = model.decode(x)
+    #     print(x)
