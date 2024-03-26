@@ -1,8 +1,3 @@
-# 问题：
-# 1. loss值乱跳完全不知道怎么回事，可能是网络结构捕捉不到序列的规律把，应该引入RNN类模型
-# 2. 使用VAE的输出不知道该如何生成，应该是从一个码表中采样一个码来指导生成，但只能生成固定长度
-# 3. 没有使用one-hot形式的编码导致输出连个整数都给不出来，应该把数据变成离散的形式
-
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -14,8 +9,8 @@ from encode import SEQUENCE_LENGTH
 
 BATCH_SIZES = 64
 LEARNING_RATE = 1e-3
-EPOCHS = 15
-SAVE_MODEL_PATH = "./models/VAE_model.pth"
+EPOCHS = 30
+SAVE_MODEL_PATH = "./models/LSTM_model.pth"
 
 
 # VAE model
@@ -93,7 +88,7 @@ def train(dataloader, model):
                    .format(reconst_loss.item(), kl_div.item(), current, size))
             
     # flush TensorBoard writer
-    writer.close()
+    writer.flush()
 
 
 def train_test_save_model(model, train_dataloader):
