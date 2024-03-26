@@ -7,49 +7,46 @@ from torch.utils.tensorboard import SummaryWriter
 from traindata import SongsDataset
 from encode import SEQUENCE_LENGTH
 
-BATCH_SIZES = 64
-LEARNING_RATE = 1e-3
 EPOCHS = 30
+BATCH_SIZES = 32
+LEARNING_RATE = 1e-3
+INPUT_SIZE = 38
+HIDDEN_SIZE = 64
+NUM_LAYERS = 1
+OUTPUT_SIZE = 38
+
 SAVE_MODEL_PATH = "./models/LSTM_model.pth"
 
 
-# VAE model
-class VAE(nn.Module):
-    def __init__(self, sequence_length=SEQUENCE_LENGTH, h_dim=32, z_dim=16):
-        super(VAE, self).__init__()
-        self.fc1 = nn.Linear(sequence_length, h_dim)
-        self.fc2 = nn.Linear(h_dim, z_dim)
-        self.fc3 = nn.Linear(h_dim, z_dim)
-        self.fc4 = nn.Linear(z_dim, h_dim)
-        self.fc5 = nn.Linear(h_dim, sequence_length)
-        
-    def encode(self, x):
-        h = F.relu(self.fc1(x))
-        return self.fc2(h), self.fc3(h)
-    
-    def reparameterize(self, mu, log_var):
-        std = torch.exp(log_var/2)
-        eps = torch.randn_like(std)
-        return mu + eps * std
+# LSTM model
+class LSTM(nn.Module):
+    def __init__(self, input_size=INPUT_SIZE, hidden_size=HIDDEN_SIZE, num_layers=NUM_LAYERS, output_size=OUTPUT_SIZE):
+        super(LSTM, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
 
-    def decode(self, z):
-        h = F.relu(self.fc4(z))
-        return F.sigmoid(self.fc5(h))
-    
     def forward(self, x):
-        # the input and the network must have the same dtype, for instance:float
-        x = x.to(torch.float)
+        # init the h0 and c0
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size)
+        
+        out, _ = self.lstm(x, (h0, c0))
 
-        mu, log_var = self.encode(x)
-        z = self.reparameterize(mu, log_var)
-        x_reconst = self.decode(z)
-        return x_reconst, mu, log_var
+        # dropout layer
+        out = nn.Dropout(0.2)(out)
+        
+        # 取序列中最后一个时间步的输出
+        out = self.fc(out[:, -1, :])
+
+        # Softmax activation
+        # out = nn.Softmax()(out)
+
+        return out
     
 
-def train(dataloader, model):
-    # init TensorBoard writer
-    writer = SummaryWriter()
-
+def train(dataloader, model, writer):
     # Get the total number of samples in the dataset
     size = len(dataloader.dataset)
 
@@ -57,46 +54,44 @@ def train(dataloader, model):
     model.train()
 
     # Iterate over the batches in the dataloader
-    for batch, (X, _) in enumerate(dataloader):
+    for batch, (X, y) in enumerate(dataloader):
+        # init loss_fn and optimizer
+        loss_fn = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
         # Compute prediction error
-        x_reconst, mu, log_var = model(X)
+        X = X.float()
+        pred = model(X)
+        loss = loss_fn(pred, y)
 
-        # the input and the network must have the same dtype, for instance:float
-        X = X.to(torch.float)
-
-        # calculate the reconst_loss and kl_div
-        optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-        reconst_loss = nn.CrossEntropyLoss()(x_reconst, X)
-        kl_div = - 0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-
-
-        # Backprop and optimize
-        loss = reconst_loss + kl_div
-        optimizer.zero_grad()
+        # Backpropagation
         loss.backward()
         optimizer.step()
+        optimizer.zero_grad()
 
         # TensorBoard log scale
-        writer.add_scalar("Reconst_Loss/train", loss, batch)
-        writer.add_scalar("KL_div/train", kl_div, batch)
+        writer.add_scalar("Loss/train", loss, batch)
 
         # Check if the current batch number is divisible by 100
         # If true, print the training loss and the number of processed samples
-        if (batch+1) % 10 == 0:
+        if batch % 50 == 0:
             loss, current = loss.item(), (batch + 1) * len(X)
-            print ("Reconst Loss: {:.4f}, KL Div: {:.4f}, [{:>5d}/{:>5d}]" 
-                   .format(reconst_loss.item(), kl_div.item(), current, size))
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
             
-    # flush TensorBoard writer
-    writer.flush()
 
 
 def train_test_save_model(model, train_dataloader):
+    # init TensorBoard writer
+    writer = SummaryWriter()
+
     # train and test the model
     for t in range(EPOCHS):
         print(f"Epoch {t+1}\n-------------------------------")
-        train(train_dataloader, model)
+        train(train_dataloader, model, writer)
     print("Done!")
+
+    # close TensorBoard writer
+    writer.close()
 
     # save the model
     # .pt/.pth/.pkl all the same
@@ -114,21 +109,9 @@ if __name__ == "__main__":
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_labels.size()}")
 
-    # # init the model
-    # model = VAE()
-    # print(model)
+    # init the model
+    model = LSTM()
+    print(model)
 
-    # # train、save the model
-    # train_test_save_model(model, train_dataloader)
-
-    # # loading models
-    # model.load_state_dict(torch.load(SAVE_MODEL_PATH))
-    # # Set the model to evaluation mode
-    # model.eval()
-    # with torch.no_grad():
-    #     # rand a tensor as the "z" as the input of decoder
-    #     shape = (BATCH_SIZES, 16)
-    #     x = torch.rand(shape)
-    #     # put z in decoder to generate a result
-    #     pred = model.decode(x)
-    #     print(x)
+    # train、save the model
+    train_test_save_model(model, train_dataloader)

@@ -11,6 +11,7 @@ from encode import encode, SEQUENCE_LENGTH
 from parse import SAVE_DIR
 
 FEWER_DATA = 0.01
+USE_ONE_HOT = True
 
 # custom dataset settings
 class SongsDataset(Dataset):
@@ -42,7 +43,10 @@ class SongsDataset(Dataset):
         target = torch.tensor(target)
 
         # switch the song into one-hot encoding
-        # song = F.one_hot(song, num_classes=38)
+        if USE_ONE_HOT == True:
+            song = F.one_hot(song, num_classes=38)
+        else:
+            pass
 
         # return "song, label" as the return of the dataset class
         return song, target
@@ -55,5 +59,18 @@ if __name__ == "__main__":
 
     # print the size of the data in dataloader
     train_features, train_labels = next(iter(train_dataloader))
+
+    train_features = train_features.permute(1, 0, 2)
+
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_labels.size()}")
+
+    data = [[1,2],
+            [3,4],
+            [5,6]]
+    tensor = torch.tensor(data)
+    print(tensor.size())
+
+    tensor = tensor.permute(1, 0)
+    print(tensor.size())
+    print(tensor)
