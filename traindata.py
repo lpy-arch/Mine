@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from encode import encode, SEQUENCE_LENGTH
 from parse import SAVE_DIR
 
-FEWER_DATA = 0.01
+FEWER_DATA = 0.1
 USE_ONE_HOT = True
 
 # custom dataset settings

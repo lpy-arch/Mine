@@ -7,8 +7,8 @@ from torch.utils.tensorboard import SummaryWriter
 from traindata import SongsDataset
 from encode import SEQUENCE_LENGTH
 
-EPOCHS = 30
-BATCH_SIZES = 32
+EPOCHS = 3
+BATCH_SIZES = 64
 LEARNING_RATE = 1e-3
 INPUT_SIZE = 38
 HIDDEN_SIZE = 64
@@ -25,7 +25,10 @@ class LSTM(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(hidden_size, output_size),
+            nn.ReLU()
+        )
 
     def forward(self, x):
         # init the h0 and c0
@@ -37,12 +40,12 @@ class LSTM(nn.Module):
         # dropout layer
         out = nn.Dropout(0.2)(out)
         
-        # 取序列中最后一个时间步的输出
-        out = self.fc(out[:, -1, :])
+        # pass the Linear_Relu stack
+        out = self.linear_relu_stack(out)
 
-        # Softmax activation
-        # out = nn.Softmax()(out)
-
+        # get only the last time-step of the sequence of the output
+        out = out[:, -1, :]
+        
         return out
     
 
@@ -66,11 +69,17 @@ def train(dataloader, model, writer):
 
         # Backpropagation
         loss.backward()
+
+        # TensorBoard log gradient
+        for gradient, param in model.named_parameters():
+            writer.add_histogram(gradient, param.grad, global_step=0)
+
         optimizer.step()
         optimizer.zero_grad()
 
-        # TensorBoard log scale
+        # TensorBoard log loss
         writer.add_scalar("Loss/train", loss, batch)
+        writer.flush()  # refresh the writer
 
         # Check if the current batch number is divisible by 100
         # If true, print the training loss and the number of processed samples
@@ -82,7 +91,7 @@ def train(dataloader, model, writer):
 
 def train_test_save_model(model, train_dataloader):
     # init TensorBoard writer
-    writer = SummaryWriter()
+    writer = SummaryWriter('TensorBoard_Logs')
 
     # train and test the model
     for t in range(EPOCHS):
