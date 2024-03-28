@@ -10,14 +10,14 @@ from torch.utils.data import Dataset, DataLoader
 from encode import encode, SEQUENCE_LENGTH
 from parse import SAVE_DIR
 
-FEWER_DATA = 0.1
+FEWER_DATA = 0.02
 USE_ONE_HOT = True
 
 # custom dataset settings
 class SongsDataset(Dataset):
     # the input of __init__ are the same input as we init the class
-    def __init__(self, sequence_length=SEQUENCE_LENGTH):
-        self.int_songs = encode(dataset_path=SAVE_DIR)  # the encoded int type song
+    def __init__(self, train, sequence_length=SEQUENCE_LENGTH):
+        self.int_songs = encode(dataset_path=SAVE_DIR, train=train)  # the encoded int type song
         self.sequence_length = sequence_length  # as the length of the sliding window
         self.num_sequences = round((len(self.int_songs) - self.sequence_length)*FEWER_DATA)  # as the number of data-sets
 
@@ -54,8 +54,14 @@ class SongsDataset(Dataset):
 
 if __name__ == "__main__":
     # load the dataloader
-    train_data = SongsDataset()
+    train_data = SongsDataset(train=True)
     train_dataloader = DataLoader(train_data, batch_size=32)
+
+    test_data = SongsDataset(train=False)
+    test_dataloader = DataLoader(test_data, batch_size=32)
+
+    print("Length of train_data: ", len(train_data))
+    print("Length of test_data: ", len(test_data))
 
     # print the size of the data in dataloader
     train_features, train_labels = next(iter(train_dataloader))
@@ -65,12 +71,3 @@ if __name__ == "__main__":
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_labels.size()}")
 
-    data = [[1,2],
-            [3,4],
-            [5,6]]
-    tensor = torch.tensor(data)
-    print(tensor.size())
-
-    tensor = tensor.permute(1, 0)
-    print(tensor.size())
-    print(tensor)

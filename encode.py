@@ -5,7 +5,8 @@ import music21 as m21
 from parse import parse
 from parse import SAVE_DIR
 
-SINGLE_FILE_DATASET = "mid_data/file_dataset"
+TRAIN_DATASET = "mid_data/train_dataset"
+TEST_DATASET = "mid_data/test_dataset"
 SEQUENCE_LENGTH = 64
 MAPPING_PATH = "mid_data/mapping.json"
 
@@ -60,10 +61,21 @@ def create_single_file_dataset(dataset_path, file_dataset_path, sequence_length)
             song = load(file_path)
             songs = songs + song + " " + new_song_delimiter
     songs = songs[:-1]    # delete the " " in the end
-    
+
+    # calculate the index
+    index = int(len(songs) * 0.8)
+
+    # 使用列表切片将前80%的内容存储到一个新列表中
+    train_songs = songs[:index]
+
+    # 使用列表切片将后20%的内容存储到另一个新列表中
+    test_songs = songs[index:]
+
     # save string that contains all dataset
-    with open(file_dataset_path, "w") as fp:
-        fp.write(songs)
+    with open(TRAIN_DATASET, "w") as fp:
+        fp.write(train_songs)
+    with open(TEST_DATASET, "w") as fp:
+        fp.write(test_songs)
         
     return songs
 
@@ -100,7 +112,7 @@ def convert_songs_to_int(songs):
         
     return int_songs
 
-def encode(dataset_path):
+def encode(dataset_path, train=True):
 
     # load the parsed songs
     songs = parse(dataset_path)
@@ -115,13 +127,22 @@ def encode(dataset_path):
             fp.write(encoded_song)
 
     # single file collection
-    songs = create_single_file_dataset(SAVE_DIR, SINGLE_FILE_DATASET, SEQUENCE_LENGTH)
+    train_songs = create_single_file_dataset(SAVE_DIR, TRAIN_DATASET, SEQUENCE_LENGTH)
+    test_songs = create_single_file_dataset(SAVE_DIR, TEST_DATASET, SEQUENCE_LENGTH)
 
     # create vocabulary map
-    creat_mapping(songs, MAPPING_PATH)
+    creat_mapping(train_songs, MAPPING_PATH)
 
     # load the songs and map them to int
-    songs = load(SINGLE_FILE_DATASET)
-    int_songs = convert_songs_to_int(songs)
+    train_songs = load(TRAIN_DATASET)
+    test_songs = load(TEST_DATASET)
+    
+    train_songs = convert_songs_to_int(train_songs)
+    # print("Length of train_songs: ", len(train_songs))
+    test_songs = convert_songs_to_int(test_songs)
+    # print("Length of test_songs: ", len(test_songs))
 
-    return int_songs
+    if train:
+        return train_songs
+    else:
+        return test_songs
