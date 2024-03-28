@@ -5,7 +5,7 @@ import numpy as np
 from keras.models import load_model
 
 from encode import SEQUENCE_LENGTH, MAPPING_PATH
-from train import SAVE_MODEL_PATH
+from torch_LSTM import SAVE_MODEL_PATH
 
 
 class MelodyGenerator:
