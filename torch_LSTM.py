@@ -8,7 +8,7 @@ from traindata import SongsDataset
 from encode import SEQUENCE_LENGTH
 
 EPOCHS = 3
-BATCH_SIZES = 64
+BATCH_SIZES = 32
 LEARNING_RATE = 1e-3
 INPUT_SIZE = 38
 HIDDEN_SIZE = 64
@@ -123,4 +123,14 @@ if __name__ == "__main__":
     print(model)
 
     # train、save the model
-    train_test_save_model(model, train_dataloader)
+    # train_test_save_model(model, train_dataloader)
+
+    model.load_state_dict(torch.load(SAVE_MODEL_PATH))
+    model.eval()
+
+    with torch.no_grad():
+        pred = model(train_features.float())
+        print(train_features.size())
+        print(pred.size())
+
+
