@@ -7,6 +7,8 @@ from keras.models import load_model
 from encode import SEQUENCE_LENGTH, MAPPING_PATH
 from torch_LSTM import SAVE_MODEL_PATH
 
+NUM_STEPS = 300
+TEMPERATURE = 0.1
 
 class MelodyGenerator:
     def __init__(self, model_path=SAVE_MODEL_PATH):
@@ -30,11 +32,13 @@ class MelodyGenerator:
         return index
         
         
-    def generate_melody(self, seed, num_steps, max_sequence_length, temperature):
+    def generate_melody(self, seed, num_steps, max_seed_length, temperature):
         
         # create seed with start symbols
         seed = seed.split()
         melody = seed
+        # we only will use the last max_seed_length after
+        # so for this step we just want to make sure that before the seed, we have enough number of / to input sequence_length number of code
         seed = self._start_symbols + seed
         
         # map seed to integers
@@ -43,11 +47,11 @@ class MelodyGenerator:
         # 
         for _ in range(num_steps):
             
-            # limit the seed to the max_sequence_length
-            seed = seed[-max_sequence_length:]
+            # limit the seed to the max_seed_length
+            seed = seed[-max_seed_length:]
             
             # one-hot encode the seed
-            # (1, max_sequence_length, num of symbols in the vocabulary)
+            # (1, max_seed_length, num of symbols in the vocabulary)
             onehot_seed = keras.utils.to_categorical(seed, num_classes=len(self._mappings))
             onehot_seed = onehot_seed[np.newaxis, ...]
             
@@ -118,6 +122,6 @@ class MelodyGenerator:
 if __name__ == "__main__":
     mg = MelodyGenerator()
     seed = "67 _ _ _ _ _ 65 _ 64 _ 62 _ 60 _ _ _"
-    melody = mg.generate_melody(seed, 500, SEQUENCE_LENGTH, 0.1)
+    melody = mg.generate_melody(seed, NUM_STEPS, SEQUENCE_LENGTH, TEMPERATURE)
     print(melody)
     mg.save_melody(melody)
