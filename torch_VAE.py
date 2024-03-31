@@ -111,7 +111,7 @@ def train_test_save_model(model, train_dataloader):
 
 if __name__ == "__main__":
     # load the dataloader
-    train_data = SongsDataset()
+    train_data = SongsDataset(train=True)
     train_dataloader = DataLoader(train_data, batch_size=BATCH_SIZES)
 
     # print the size of the data in dataloader
