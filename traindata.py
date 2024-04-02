@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from encode import encode, SEQUENCE_LENGTH
 from parse import SAVE_DIR
 
-FEWER_DATA = 0.05
+FEWER_DATA = 0.1
 USE_ONE_HOT = True
 
 # custom dataset settings
@@ -26,7 +26,6 @@ class SongsDataset(Dataset):
 
     def __getitem__(self, idx):
         # get the songs and targets
-
         # create the sliding window to generate the training data
         inputs = []
         targets = []

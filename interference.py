@@ -11,7 +11,7 @@ from encode import SEQUENCE_LENGTH, MAPPING_PATH
 from torch_LSTM import SAVE_MODEL_PATH, LSTM
 
 NUM_STEPS = 100
-TEMPERATURE = 0.1
+TEMPERATURE = 0.5
 
 class MelodyGenerator:
     def __init__(self, model, model_path=SAVE_MODEL_PATH):
@@ -26,7 +26,7 @@ class MelodyGenerator:
         
     def _sample_with_temperature(self, probabilities, temperature):
         
-        predictions = np.log(probabilities) / temperature
+        predictions = np.log(probabilities + 1e-10) / temperature
         probabilities = np.exp(predictions) / np.sum(np.exp(predictions))
         
         choices = range(len(probabilities))    # [0,1,2,3]
@@ -63,7 +63,7 @@ class MelodyGenerator:
             # make a prediction
             # [0.1, 0.2, 0.1, 0.6]
             probabilities = self.model(onehot_seed)
-            probabilities = nn.Softmax()(probabilities)
+            probabilities = nn.Softmax(dim=-1)(probabilities)
             probabilities = probabilities[0]
             # print(probabilities)
 
@@ -139,4 +139,4 @@ if __name__ == "__main__":
     seed = "67 _ _ _ _ _ 65 _ 64 _ 62 _ 60 _ _ _"
     melody = mg.generate_melody(seed, NUM_STEPS, SEQUENCE_LENGTH, TEMPERATURE)
     print(melody)
-    mg.save_melody(melody)
+    # mg.save_melody(melody)

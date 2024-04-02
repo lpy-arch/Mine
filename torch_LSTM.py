@@ -11,7 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 from traindata import SongsDataset
 from encode import SEQUENCE_LENGTH, MAPPING_PATH
 
-EPOCHS = 10
+EPOCHS = 3
 BATCH_SIZES = 64
 LEARNING_RATE = 1e-3
 INPUT_SIZE = 38
@@ -80,13 +80,17 @@ def train(dataloader, model, writer, loss_fn, optimizer):
         # Check if the current batch number is divisible by 100
         # If true, print the training loss and the number of processed samples
 
-        if batch % 100 == 0:
-            loss, current = loss.item(), (batch + 1) * len(X)
-            print(f"Train loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+        # if batch % 100 == 0:
+        # loss, current = loss.item(), (batch + 1) * len(X)
+        # print(f"Train loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
-            # TensorBoard log loss
-            writer.add_scalar("Loss/train", loss, batch)
-            writer.flush()  # refresh the writer
+        loss, current = loss.item(), (batch + 1)
+        mother = int(28969/BATCH_SIZES)
+        print(f"Train loss: {loss:>7f}  [{current:>5d}/{mother:>5d}]")
+
+        # TensorBoard log loss
+        writer.add_scalar("Loss/train", loss, batch)
+        writer.flush()  # refresh the writer
 
             
 def test(dataloader, model, writer, loss_fn, epochs):
