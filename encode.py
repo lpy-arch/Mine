@@ -10,6 +10,7 @@ TEST_DATASET = "mid_data/test_dataset"
 SEQUENCE_LENGTH = 64
 MAPPING_PATH = "mid_data/mapping.json"
 
+CREATE_MAPPING_AGAIN = False
 
 def load(file_path):
     with open(file_path, "r") as fp:
@@ -130,8 +131,9 @@ def encode(dataset_path, train=True):
     train_songs = create_single_file_dataset(SAVE_DIR, TRAIN_DATASET, SEQUENCE_LENGTH)
     test_songs = create_single_file_dataset(SAVE_DIR, TEST_DATASET, SEQUENCE_LENGTH)
 
-    # create vocabulary map
-    creat_mapping(train_songs, MAPPING_PATH)
+    if CREATE_MAPPING_AGAIN:
+        # create vocabulary map
+        creat_mapping(train_songs, MAPPING_PATH)
 
     # load the songs and map them to int
     train_songs = load(TRAIN_DATASET)

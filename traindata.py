@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from encode import encode, SEQUENCE_LENGTH
 from parse import SAVE_DIR
 
-FEWER_DATA = 0.02
+FEWER_DATA = 0.05
 USE_ONE_HOT = True
 
 # custom dataset settings
@@ -48,6 +48,9 @@ class SongsDataset(Dataset):
         else:
             pass
 
+        # transfer the data to float
+        song = song.float()
+
         # return "song, label" as the return of the dataset class
         return song, target
 
@@ -63,11 +66,9 @@ if __name__ == "__main__":
     print("Length of train_data: ", len(train_data))
     print("Length of test_data: ", len(test_data))
 
-    # print the size of the data in dataloader
-    train_features, train_labels = next(iter(train_dataloader))
-
-    train_features = train_features.permute(1, 0, 2)
-
-    print(f"Feature batch shape: {train_features.size()}")
-    print(f"Labels batch shape: {train_labels.size()}")
+    # print the data in dataloader
+    for _ in range(5):
+        train_features, train_labels = next(iter(train_dataloader))
+        print("tran_feature: ", train_features)
+        print("tran_lable: ", train_labels)
 

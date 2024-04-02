@@ -1,20 +1,23 @@
+# pylint: disable=E1102
+
 import json
 import music21 as m21
-import keras
 import numpy as np
-from keras.models import load_model
+import torch
+from torch import nn
+import torch.nn.functional as F
 
 from encode import SEQUENCE_LENGTH, MAPPING_PATH
-from torch_LSTM import SAVE_MODEL_PATH
+from torch_LSTM import SAVE_MODEL_PATH, LSTM
 
-NUM_STEPS = 300
+NUM_STEPS = 100
 TEMPERATURE = 0.1
 
 class MelodyGenerator:
-    def __init__(self, model_path=SAVE_MODEL_PATH):
+    def __init__(self, model, model_path=SAVE_MODEL_PATH):
         
         self.model_path = model_path
-        self.model = load_model(model_path)
+        self.model = model
         
         with open(MAPPING_PATH, "r") as fp:
             self._mappings = json.load(fp)
@@ -52,15 +55,23 @@ class MelodyGenerator:
             
             # one-hot encode the seed
             # (1, max_seed_length, num of symbols in the vocabulary)
-            onehot_seed = keras.utils.to_categorical(seed, num_classes=len(self._mappings))
-            onehot_seed = onehot_seed[np.newaxis, ...]
+            seed = torch.tensor(seed)
+            onehot_seed = F.one_hot(seed, num_classes=38)
+            onehot_seed = onehot_seed.unsqueeze(0)
+            onehot_seed = onehot_seed.float()
             
             # make a prediction
             # [0.1, 0.2, 0.1, 0.6]
-            probabilities = self.model.predict(onehot_seed)[0]
+            probabilities = self.model(onehot_seed)
+            probabilities = nn.Softmax()(probabilities)
+            probabilities = probabilities[0]
+            # print(probabilities)
+
+            probabilities = probabilities.detach().numpy()
             output_int = self._sample_with_temperature(probabilities, temperature)
             
             # update seed
+            seed = seed.tolist()
             seed.append(output_int)
             
             # map int to our encoding
@@ -120,7 +131,11 @@ class MelodyGenerator:
         stream.write(format, file_name)
 
 if __name__ == "__main__":
-    mg = MelodyGenerator()
+    model = LSTM()
+    model.load_state_dict(torch.load(SAVE_MODEL_PATH))
+    model.eval()
+
+    mg = MelodyGenerator(model)
     seed = "67 _ _ _ _ _ 65 _ 64 _ 62 _ 60 _ _ _"
     melody = mg.generate_melody(seed, NUM_STEPS, SEQUENCE_LENGTH, TEMPERATURE)
     print(melody)
